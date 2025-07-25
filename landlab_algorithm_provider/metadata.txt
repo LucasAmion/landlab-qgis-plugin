@@ -1,0 +1,39 @@
+# Mandatory metadata
+[general]
+name=Landlab Algorithm Provider
+qgisMinimumVersion=3.8
+description=Earth Surface Dynamics modeling algorithms
+version=0.1
+author=Lucas Amion
+email=lamion@dcc.uchile.cl
+about=This plugin provides various algorithms from the Landlab Python library, which is an open-source package for numerical modeling of Earth surface dynamics that allows the simulation of different physical processes such as generation of rain or erosion by flowing water.
+tracker=https://github.com/LucasAmion/landlab_qgis_plugin/issues
+repository=https://github.com/LucasAmion/landlab_qgis_plugin
+
+# Recommended items:
+homepage=https://github.com/LucasAmion/landlab_qgis_plugin
+icon=img/icon.png
+hasProcessingProvider=yes
+
+# Uncomment the following line and add your changelog:
+# changelog=
+
+# Tags are comma separated with spaces allowed
+tags=python,landlab,erosion,geomorphology,landscape,evolution
+
+# Experimental flag
+experimental=True
+
+# Deprecated flag (applies to the whole plugin, not just a single version)
+deprecated=False
+
+# Since QGIS 3.8, a comma separated list of plugins to be installed
+# (or upgraded) can be specified.
+# Check the documentation for more information.
+plugin_dependencies=PackageInstallerQgis
+
+# Category of the plugin: Raster, Vector, Database or Web
+category=Raster
+
+# If the plugin can run on QGIS Server.
+server=False

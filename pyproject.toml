@@ -1,0 +1,15 @@
+[project]
+name = "landlab-qgis-plugin"
+version = "0.1.0"
+description = "Qgis plugin for Landlab"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "landlab>=2.9.2",
+    "pyqt5>=5.15.11",
+]
+
+[tool.uv.workspace]
+members = [
+    "help",
+]

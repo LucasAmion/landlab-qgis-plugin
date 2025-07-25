@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/plugins/landlab_algorithm_provider" >
+        <file>img/icon.png</file>
+    </qresource>
+</RCC>
