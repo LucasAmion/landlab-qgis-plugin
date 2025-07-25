@@ -19,8 +19,9 @@ A QGIS plugin for integrating Landlab models and workflows.
 
 ## Requirements
 
-- QGIS 3.X
-- Python 3.x
+- QGIS 3.8 or higher.
+- PackageInstallerQgis Plugin.
+- Landlab Python library.
 
 ## License
 
