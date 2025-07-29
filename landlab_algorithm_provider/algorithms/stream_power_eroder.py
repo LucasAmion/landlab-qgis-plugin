@@ -273,3 +273,25 @@ class StreamPowerEroder(QgsProcessingAlgorithm):
 
   def createInstance(self):
     return StreamPowerEroder()
+
+  def shortHelpString(self):
+    """
+    Returns a localised short helper string for the algorithm. This string
+    should provide a basic description about what the algorithm does and the
+    parameters and outputs associated with it.
+    """
+    return self.tr("""
+    This algorithm applies stream power erosion to a topographic surface.
+
+    The <b>Stream Power Eroder</b> component simulates erosional processes that shape landscapes over time using the stream power law. It calculates erosion rates based on drainage area, slope, and user-defined parameters to model landscape evolution.
+
+    <b>Parameters:</b>
+      <b>- Input raster layer:</b> Digital elevation model to process
+      <b>- Erosion constant (K_sp):</b> Stream power erosion coefficient that controls erosion rate
+      <b>- Time step (dt):</b> Duration of erosion simulation in model time units
+
+    <b>Output:</b>
+      <b>- Eroded DEM:</b> Raster layer showing the topography after stream power erosion
+
+    <b>Note:</b> This algorithm requires flow accumulation to be calculated internally using D8 flow routing before applying erosion.
+    """)
