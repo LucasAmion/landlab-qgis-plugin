@@ -30,6 +30,7 @@ __copyright__ = '(C) 2025 by Lucas Amion'
 from qgis.PyQt.QtGui import QIcon
 from qgis.core import QgsProcessingProvider
 from .algorithms.stream_power_eroder import StreamPowerEroder
+from .algorithms.sink_filler import SinkFiller
 from . import resources # noqa: F401 Import resources to ensure icons are available
 
 
@@ -37,6 +38,7 @@ class LandlabProvider(QgsProcessingProvider):
 
   def loadAlgorithms(self, *args, **kwargs):
     self.addAlgorithm(StreamPowerEroder())
+    self.addAlgorithm(SinkFiller())
 
   def id(self, *args, **kwargs):
     """The ID of your plugin, used for identifying the provider.

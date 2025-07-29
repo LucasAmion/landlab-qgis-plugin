@@ -61,7 +61,15 @@ class LandlabPlugin:
 
       setting = "Processing/Configuration/MENU_landlab_algorithm_provider:stream_power_eroder"
       if not settings.contains(setting):
-        settings.setValue(setting, "&Plugins/Erosion/Landlab Algorithm Provider")
+        settings.setValue(setting, "&Plugins/Landlab Algorithm Provider")
+
+      setting = "Processing/Configuration/BUTTON_landlab_algorithm_provider:sink_filler"
+      if not settings.contains(setting):
+        settings.setValue(setting, True)
+
+      setting = "Processing/Configuration/MENU_landlab_algorithm_provider:sink_filler"
+      if not settings.contains(setting):
+        settings.setValue(setting, "&Plugins/Landlab Algorithm Provider")
 
       self.initProcessing()
 
