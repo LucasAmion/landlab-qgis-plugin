@@ -7,11 +7,11 @@ version=0.1
 author=Lucas Amion
 email=lamion@dcc.uchile.cl
 about=This plugin provides various algorithms from the Landlab Python library, which is an open-source package for numerical modeling of Earth surface dynamics that allows the simulation of different physical processes such as generation of rain or erosion by flowing water.
-tracker=https://github.com/LucasAmion/landlab_qgis_plugin/issues
-repository=https://github.com/LucasAmion/landlab_qgis_plugin
+tracker=https://github.com/LucasAmion/landlab-qgis-plugin/issues
+repository=https://github.com/LucasAmion/landlab-qgis-plugin
 
 # Recommended items:
-homepage=https://github.com/LucasAmion/landlab_qgis_plugin
+homepage=https://github.com/LucasAmion/landlab-qgis-plugin
 icon=img/icon.png
 hasProcessingProvider=yes
 

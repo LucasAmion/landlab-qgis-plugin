@@ -1,6 +1,7 @@
 default: all
 all: clean resources zip
 clean:
+	find . -name "__pycache__" -type d -exec rm -rf {} +
 	rm -f landlab_algorithm_provider/resources.py
 	rm -f landlab_algorithm_provider.zip
 resources:
