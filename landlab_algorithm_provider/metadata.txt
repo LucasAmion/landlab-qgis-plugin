@@ -3,7 +3,7 @@
 name=Landlab Algorithm Provider
 qgisMinimumVersion=3.8
 description=Earth Surface Dynamics modeling algorithms
-version=0.1
+version=0.2
 author=Lucas Amion
 email=lamion@dcc.uchile.cl
 about=This plugin provides various algorithms from the Landlab Python library, which is an open-source package for numerical modeling of Earth surface dynamics that allows the simulation of different physical processes such as generation of rain or erosion by flowing water.
@@ -16,7 +16,9 @@ icon=img/icon.png
 hasProcessingProvider=yes
 
 # Uncomment the following line and add your changelog:
-# changelog=
+changelog=
+    Version 0.2
+    - Mask layer support: algorithms now support optional vector polygon layers as masks to restrict processing to specific areas.
 
 # Tags are comma separated with spaces allowed
 tags=python,landlab,erosion,geomorphology,landscape,evolution
