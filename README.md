@@ -1,4 +1,4 @@
-# Landlab QGIS Plugin
+# Landlab Algorithm Provider
 
 A QGIS plugin for integrating [Landlab](https://landlab.csdms.io) models and workflows.
 
