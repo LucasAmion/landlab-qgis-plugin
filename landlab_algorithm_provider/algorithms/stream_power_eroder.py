@@ -34,13 +34,13 @@ from qgis.core import (QgsProcessingAlgorithm,
                        QgsProcessingParameterRasterDestination,
                        QgsProcessingException,
                        QgsProcessingParameterNumber,
-                       QgsRasterLayer,
-                       QgsProject)
+                       QgsProcessingParameterVectorLayer,
+                       QgsProcessingParameterBoolean,
+                       QgsWkbTypes)
 
-import numpy as np
-from osgeo import gdal
 from landlab import RasterModelGrid
 from landlab.components import FlowAccumulator, StreamPowerEroder as LandlabStreamPowerEroder
+from ..utils import (rasterToNumpy, createOutputRaster, createProcessingMask)
 
 
 class StreamPowerEroder(QgsProcessingAlgorithm):
@@ -63,6 +63,8 @@ class StreamPowerEroder(QgsProcessingAlgorithm):
   INPUT = 'INPUT'
   K_SP = 'K_SP'
   DT = 'DT'
+  MASK_LAYER = 'MASK_LAYER'
+  SELECTED_FEATURES = 'SELECTED_FEATURES'
 
   def initAlgorithm(self, config):
     """
@@ -100,6 +102,25 @@ class StreamPowerEroder(QgsProcessingAlgorithm):
       )
     )
 
+    # Add optional vector layer parameter for masking
+    self.addParameter(
+      QgsProcessingParameterVectorLayer(
+        self.MASK_LAYER,
+        self.tr('Mask layer'),
+        types=[QgsWkbTypes.PolygonGeometry],
+        optional=True
+      )
+    )
+
+    # Add parameter for using selected features only
+    self.addParameter(
+      QgsProcessingParameterBoolean(
+        self.SELECTED_FEATURES,
+        self.tr('Use selected features only'),
+        defaultValue=False
+      )
+    )
+
     # We add a raster destination in which to store our processed raster
     # (this usually takes the form of a newly created raster layer when the
     # algorithm is run in QGIS).
@@ -125,40 +146,31 @@ class StreamPowerEroder(QgsProcessingAlgorithm):
     k_sp = self.parameterAsDouble(parameters, self.K_SP, context)
     dt = self.parameterAsDouble(parameters, self.DT, context)
     output_path = self.parameterAsOutputLayer(parameters, self.OUTPUT, context)
+    
+    # Get optional mask layer
+    mask_layer = self.parameterAsVectorLayer(parameters, self.MASK_LAYER, context)
+    use_selected_features = self.parameterAsBool(parameters, self.SELECTED_FEATURES, context)
 
-    feedback.pushInfo(self.tr(f'Processing raster: {input_layer.source()}'))
-    feedback.pushInfo(self.tr(f'K_sp: {k_sp}, dt: {dt}'))
-    feedback.pushInfo(self.tr(f'Output will be saved to: {output_path}'))
+    feedback.pushInfo(self.tr(f'Processing raster: {input_layer.source()}\n'))
+    feedback.pushInfo(self.tr(f'K_sp: {k_sp}, dt: {dt}\n'))
+    if mask_layer:
+        feedback.pushInfo(self.tr(f'Using mask layer: {mask_layer.name()}\n'))
+        feedback.pushInfo(self.tr(f'Use selected features only: {use_selected_features}\n'))
+    feedback.pushInfo(self.tr(f'Output will be saved to: {output_path}\n'))
     
-    # Read raster data
-    provider = input_layer.dataProvider()
-    extent = provider.extent()
-    width = provider.xSize()
-    height = provider.ySize()
-    
-    # Calculate pixel size (assuming square pixels)
-    dx = extent.width() / width
-    dy = extent.height() / height
-    
-    feedback.pushInfo(self.tr(f'Raster dimensions: {width}x{height}, pixel size: {dx:.2f}x{dy:.2f}'))
-    
-    # Read the raster data as numpy array
-    block = provider.block(1, extent, width, height)
-    
-    # Convert to numpy array
-    elevation_data = np.zeros((height, width), dtype=np.float64)
-    for row in range(height):
-      for col in range(width):
-        elevation_data[row, col] = block.value(row, col)
+    # Read raster data using utility function
+    elevation_data, provider, extent, width, height, dx, dy = rasterToNumpy(input_layer, feedback)
     
     feedback.setProgress(20)
     
     # Create Landlab RasterModelGrid
-    # Note: Landlab expects (rows, cols) and uses node spacing
     mg = RasterModelGrid((height, width), xy_spacing=(dx, dy))
     
     # Add elevation field to the grid
     mg.add_field("topographic__elevation", elevation_data.flatten(), at="node")
+    
+    # Create mask if vector layer is provided using utility function
+    erosion_mask = createProcessingMask(mask_layer, use_selected_features, extent, width, height, dx, dy, feedback)
     
     feedback.setProgress(40)
     
@@ -166,60 +178,40 @@ class StreamPowerEroder(QgsProcessingAlgorithm):
     fr = FlowAccumulator(mg, flow_director="D8")
     sp = LandlabStreamPowerEroder(mg, K_sp=k_sp)
     
-    feedback.pushInfo(self.tr('Running flow accumulation...'))
+    feedback.pushInfo(self.tr('Running flow accumulation...\n'))
     fr.run_one_step()
     
     feedback.setProgress(60)
     
-    feedback.pushInfo(self.tr('Running stream power erosion...'))
+    # Store original elevation for masking
+    if erosion_mask is not None:
+        original_elevation = mg.at_node["topographic__elevation"].copy()
+    
+    feedback.pushInfo(self.tr('Running stream power erosion...\n'))
     sp.run_one_step(dt=dt)
+    
+    # Apply mask if provided - restore original elevation outside mask
+    if erosion_mask is not None:
+        feedback.pushInfo(self.tr('Applying mask to erosion results...\n'))
+        mask_flat = erosion_mask.flatten()
+        eroded_elevation = mg.at_node["topographic__elevation"]
+        
+        # Restore original elevation where mask is 0 (outside erosion areas)
+        eroded_elevation[mask_flat == 0] = original_elevation[mask_flat == 0]
+        
+        # Update the grid with masked results
+        mg.at_node["topographic__elevation"] = eroded_elevation
     
     feedback.setProgress(80)
     
     # Get the modified elevation data
     modified_elevation = mg.at_node["topographic__elevation"].reshape((height, width))
     
-    # Create output raster
-    # Create a new GDAL dataset
-    driver = gdal.GetDriverByName('GTiff')
-    output_dataset = driver.Create(output_path, width, height, 1, gdal.GDT_Float64)
-    
-    # Set geotransform and projection
-    geotransform = [
-      extent.xMinimum(),  # top-left x
-      dx,                 # pixel width
-      0,                  # rotation (0 for north-up images)
-      extent.yMaximum(),  # top-left y
-      0,                  # rotation (0 for north-up images)
-      -dy                 # pixel height (negative for north-up images)
-    ]
-    output_dataset.SetGeoTransform(geotransform)
-    output_dataset.SetProjection(input_layer.crs().toWkt())
-    
-    # Write the data
-    band = output_dataset.GetRasterBand(1)
-    band.WriteArray(modified_elevation)
-    band.SetNoDataValue(provider.sourceNoDataValue(1))
-    
-    # Close the dataset
-    output_dataset = None
-    
-    # Create a QgsRasterLayer from the output file
-    output_layer = QgsRasterLayer(output_path, "Stream Power Eroded DEM")
-    
-    # Copy the renderer (color scheme) from the input layer to the output layer
-    if input_layer.renderer():
-      # Clone the renderer from the input layer
-      renderer_clone = input_layer.renderer().clone()
-      output_layer.setRenderer(renderer_clone)
-      
-      # Trigger a repaint to apply the new renderer
-      output_layer.triggerRepaint()
-      
-      feedback.pushInfo(self.tr('Applied color scheme from input layer to output layer'))
-    
-    # Add the layer to the project to make the color scheme visible
-    QgsProject.instance().addMapLayer(output_layer)
+    # Save the processed data to raster file using utility function
+    createOutputRaster(
+        modified_elevation, output_path, extent, width, height, dx, dy, 
+        input_layer, "Stream Power Eroded DEM", feedback
+    )
     
     feedback.setProgress(100)
 
@@ -289,9 +281,11 @@ class StreamPowerEroder(QgsProcessingAlgorithm):
       <b>- Input raster layer:</b> Digital elevation model to process
       <b>- Erosion constant (K_sp):</b> Stream power erosion coefficient that controls erosion rate
       <b>- Time step (dt):</b> Duration of erosion simulation in model time units
+      <b>- Mask layer (optional):</b> Vector polygon layer to restrict erosion to specific areas
+      <b>- Use selected features only:</b> Apply erosion only within selected features of the mask layer
 
     <b>Output:</b>
       <b>- Eroded DEM:</b> Raster layer showing the topography after stream power erosion
 
-    <b>Note:</b> This algorithm requires flow accumulation to be calculated internally using D8 flow routing before applying erosion.
+    <b>Note:</b> This algorithm requires flow accumulation to be calculated internally using D8 flow routing before applying erosion. When a mask layer is provided, erosion will only be applied within the masked areas, leaving the rest of the topography unchanged.
     """)
