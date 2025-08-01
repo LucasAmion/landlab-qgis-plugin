@@ -7,7 +7,9 @@ wheels/
 *.egg-info
 
 # Virtual environments
-.venv
+.venv/
 
 # Uv files
 uv.lock
+
+landlab_algorithm_provider.zip
